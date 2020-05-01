@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.0.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-05-01T15:37:27+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">Linearizable</title><subtitle>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.
+</subtitle><author><name>GitHub User</name><email>your-email@domain.com</email></author><entry><title type="html">An Investigation of Solr’s Synonym Handling Oddities</title><link href="http://localhost:4000/2020/04/10/solr-synonym-handling-oddities.html" rel="alternate" type="text/html" title="An Investigation of Solr's Synonym Handling Oddities" /><published>2020-04-10T00:00:00+05:30</published><updated>2020-04-10T00:00:00+05:30</updated><id>http://localhost:4000/2020/04/10/solr-synonym-handling-oddities</id><content type="html" xml:base="http://localhost:4000/2020/04/10/solr-synonym-handling-oddities.html">&lt;blockquote&gt;
+  &lt;p&gt;Do you use Solr?&lt;/p&gt;
+
+  &lt;p&gt;Do you use stopwords &amp;amp; synonyms with Solr?&lt;/p&gt;
+
+  &lt;p&gt;Do your synonyms have stopwords in them?&lt;/p&gt;
+
+  &lt;p&gt;If yes, then this article is probably for you. If you are a Solr/Lucene nerd like me who loves to deep dive into the intricacies of internals &amp;amp; under-the-hood implementations, then this article is definitely for you :-).&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Solr has a long and turbulent history with multi-word synonyms (Just search &lt;code class=&quot;highlighter-rouge&quot;&gt;solr multi word synonyms&lt;/code&gt; in Google or read &lt;a href=&quot;https://opensourceconnections.com/blog/2013/10/27/why-is-multi-term-synonyms-so-hard-in-solr/&quot;&gt;here&lt;/a&gt; &amp;amp; &lt;a href=&quot;https://lucidworks.com/post/multi-word-synonyms-solr-adds-query-time-support/&quot;&gt;here&lt;/a&gt;). &lt;code class=&quot;highlighter-rouge&quot;&gt;SynonymGraphFilter&lt;/code&gt; finally solved most of these issues. But recently we (Search team at OLX Autos India) discovered a strange issue when dealing with synonyms which contain stop words, specifically if stop words appear at the beginning or end.&lt;/p&gt;
+
+&lt;p&gt;For example, if the synonyms file contains the following entry:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;i phone, iphone
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;and &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; is also defined as a stopword, on account of it being a pronoun. If I search for &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt; using the following Solr request:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;/select?q=i phone&amp;amp;qf=title&amp;amp;defType=edismax&amp;amp;q.op=AND
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Then this results into the equivalent of the following dismax parsed query:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+(title:iphone)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Whoa! Where did the &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt; go? I expected the &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; of &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt; being removed, on account of it being a stopword, and search with just &lt;code class=&quot;highlighter-rouge&quot;&gt;phone&lt;/code&gt; i.e. I expected the parsedquery to be:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+(title:iphone title:phone)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Note that this, in itself, isn’t great from a good search experience perspective as it will return a lot of irrelevant results, but in terms of Lucene behaviour, this is what I expected (Ideally I would like i phone be searched as a phrase here. We’ll talk about this later in this article).&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;If we have stopword somewhere in the middle, then it works as expected. So if I have the following in synonyms:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;apple i phone, iphone
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;‌and I search &lt;code class=&quot;highlighter-rouge&quot;&gt;apple i phone&lt;/code&gt;, then it generates the expected parsedquery:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+((title:iphone (+title:apple +title:phone)))
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;‌That’s not it. It veers into even weirder territory if we have multiple synonyms (one or more of which contain stopwords at the end).&lt;/p&gt;
+
+&lt;p&gt;‌Let’s take an example - synonyms for iPhone 6s:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;iphone 6s, iphone 6 s, iphone6 s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;‌with &lt;code class=&quot;highlighter-rouge&quot;&gt;s&lt;/code&gt; being a stopword. When you search for &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s&lt;/code&gt; using the following request:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;/select?q=iphone 6s&amp;amp;qf=title&amp;amp;defType=edismax&amp;amp;q.op=AND
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;‌What is the final query that you expect? To my (and I’m sure, your) great surprise, the parsedquery is:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+(+(title:iphone) +(title:6) +(title:6s))
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;which is a weird combination. It’ll try to find documents which contain &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt; AND &lt;code class=&quot;highlighter-rouge&quot;&gt;6&lt;/code&gt; AND &lt;code class=&quot;highlighter-rouge&quot;&gt;6s&lt;/code&gt;. I was expecting it to match documents which contain &lt;code class=&quot;highlighter-rouge&quot;&gt;(iphone AND 6s) OR (iphone AND 6) OR (iphone6)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;We could not figure out why this was happening. This behaviour is not documented anywhere (or at least we could not find any). So I decided to debug the Solr codebase on my laptop to see what’s going on at the implementation level. I cloned the &lt;a href=&quot;https://github.com/apache/lucene-solr&quot;&gt;lucene-solr&lt;/a&gt; repo, built it using ant and started debugging using IntelliJ debugger.&lt;/p&gt;
+
+&lt;p&gt;‌I’ll share what I found but before that, I want to give some background on how multi-word synonyms are handled by Solr using &lt;code class=&quot;highlighter-rouge&quot;&gt;SynonymGraphFilter&lt;/code&gt;.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;I use Lucene and Solr interchangeably in this article. Some of the functionalities described here are part of Solr and others are part of Lucene.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;some-background-on-synonymgraphfilter&quot;&gt;Some Background on SynonymGraphFilter&lt;/h2&gt;
+
+&lt;p&gt;This &lt;a href=&quot;http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html&quot;&gt;article&lt;/a&gt; provides a very good explanation of how a token stream with synonyms (potentially multi-word) is handled using a graph. Here I’ll help you visualize how this graph is created using the examples we mentioned above.&lt;/p&gt;
+
+&lt;p&gt;Let’s take the first example (&lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt;). If we analyse &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt; using the analysis tool provided by Solr admin panel, we get the following analysis:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*DXIrh0p-lAoroTLRQpTWsQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can think of each token as a node in the graph. To see how the graph is generated from this analysis, we need to consider the following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;position:&lt;/strong&gt; at which position does this node start. Here both i and iphone are at position 1 and phone is at the next position (position 2)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;positionLength:&lt;/strong&gt; No. of hops that this node takes.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;‌The above analysis generates the following graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*OxFeocbynHaLQoh00AtO9g.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Internally Lucene uses an attribute called &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; to determine positions. &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; for a node is defined as the gap (in terms of the number of nodes or positions) between start positions of this node and the previous node. &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; always starts with the value of 1.&lt;/p&gt;
+
+&lt;p&gt;Let’s see how this graph is represented by Lucene’s internal data structure:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/2400/1*kbza43Lyt6y5bK3lw0ZOEA.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;‌In this case, the first token is &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt; (&lt;code class=&quot;highlighter-rouge&quot;&gt;iphon&lt;/code&gt; here because of stemming, but you can ignore that) so its &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is 1. Next token, &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt;, starts at the same position as the previous token (iphone), so its increment will be 0. Next token, &lt;code class=&quot;highlighter-rouge&quot;&gt;phone&lt;/code&gt;, starts at the next position, so its increment is 1.&lt;/p&gt;
+
+&lt;p&gt;‌Here’s a more readable format:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt; &lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;i&lt;/th&gt;
+      &lt;th&gt;phone&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Increment&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Length&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;positionLength and positionIncrement are important concepts in Lucene’s synonym handling as well as for understanding the issues we are describing in this post.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Similarly, let’s take a look at the analysis for the second example (&lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s&lt;/code&gt;), again without considering stopwords:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/2400/1*0xknN3YhTSXjrGaQkDSvUQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And the corresponding graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*_TvxgJQwYMVXetTlEow5PQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Here’s the internal representation (with a readable tabular format):&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt; &lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;iphone6&lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;6&lt;/th&gt;
+      &lt;th&gt;s&lt;/th&gt;
+      &lt;th&gt;s&lt;/th&gt;
+      &lt;th&gt;6s&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Increment&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Length&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;I hope it’s pretty clear now how positionLength and positionIncrement attributes work and how we can visualize the graph with these.&lt;/p&gt;
+
+&lt;h2 id=&quot;adding-stopwords&quot;&gt;Adding Stopwords&lt;/h2&gt;
+
+&lt;p&gt;Now that we have seen how SynonymGraphFilter works, let’s add the stopwords back and investigate what causes the weird behaviour.&lt;/p&gt;
+
+&lt;h3 id=&quot;case-1&quot;&gt;Case #1&lt;/h3&gt;
+
+&lt;p&gt;First, let’s examine case #1 (&lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt;), where entire synonym is dropped if a stopword appears at the beginning or end. We add &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; as a stopword and analyse again. Here’s the analysis:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*6O4YLPKitHalmffKMwkKQw.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As you can see, &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; is dropped. Rest everything remains the same. We can now visualize this as the following graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*tUcSakuzoTemeiSsdxZMxw.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The corresponding internal representation is:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt; &lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;phone&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Increment&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Length&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;Lucene &lt;a href=&quot;https://github.com/apache/lucene-solr/blob/releases/lucene-solr/8.4.0/lucene/core/src/java/org/apache/lucene/util/graph/GraphTokenStreamFiniteStrings.java#L200&quot;&gt;builds&lt;/a&gt; an automaton (which is sort of a graph similar to above) to generate the final query strings. This method takes the above graph as input, does some processing and returns another graph (said automaton) which is finally traversed to generate the query. This conversion is where all the issues we encountered are found. Specifically, two things that it does:‌&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/apache/lucene-solr/blob/releases/lucene-solr/8.4.0/lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java#L983&quot;&gt;Remove dead states&lt;/a&gt; i.e. states which are not reachable from the start or the end state is not reachable from it&lt;/li&gt;
+  &lt;li&gt;How it handles gaps introduced by removing stopword nodes&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The current issue is caused by removing dead states. As we can see in the graph above, &lt;code class=&quot;highlighter-rouge&quot;&gt;phone&lt;/code&gt; node is not reachable from the start state. So it is marked as a dead state and removed. Hence it does not appear in the final query.&lt;/p&gt;
+
+&lt;p&gt;This will happen for all the synonyms where either stopword appears at the beginning (not reachable from start) or at the end (the end state will not be reachable).&lt;/p&gt;
+
+&lt;h3 id=&quot;case-2&quot;&gt;Case #2&lt;/h3&gt;
+
+&lt;p&gt;Now let’s examine the other case where searching for &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s&lt;/code&gt; results in a weird token combination being searched for.&lt;/p&gt;
+
+&lt;p&gt;If we analyse &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s&lt;/code&gt; again with &lt;code class=&quot;highlighter-rouge&quot;&gt;s&lt;/code&gt; added to stopword list, we can see the following analysis:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/2400/1*upx5E23_8QG3cyNNm6ZYUQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It is equivalent to the following graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*_elE61LbtrnKJN1gSYiKnw.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If we go by the intuition gained from debugging case #1, we can say that this will ignore the lower two branches as they can not reach the end state and will only search &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s&lt;/code&gt;, but that doesn’t happen. Instead, Solr ends up searching for &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6 6s&lt;/code&gt;. How does that happen?&lt;/p&gt;
+
+&lt;p&gt;‌Let’s look at the internal data structure:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/2400/1*ONJa5AMdTO0c6kYtm6bMiw.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In tabular format, this translates to:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt; &lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;iphone6&lt;/th&gt;
+      &lt;th&gt;iphone&lt;/th&gt;
+      &lt;th&gt;6&lt;/th&gt;
+      &lt;th&gt;6s&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Increment&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Position Length&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;This will generate the same graph as above, which is then used to build the automaton.&lt;/p&gt;
+
+&lt;p&gt;The process of building the automaton is as follows:‌&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Traverse the tokes in the stream. For each token:&lt;/li&gt;
+  &lt;li&gt;Identify &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;end&lt;/code&gt; index in the automaton (which correspond to nodes) and create an edge (which corresponds to the token)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The code is a bit involved but pretty straightforward if we step through it using the debugger. Let’s walk through how the automaton is built. Indexes start with 0 (identified by &lt;code class=&quot;highlighter-rouge&quot;&gt;pos&lt;/code&gt; in code).&lt;/p&gt;
+
+&lt;p&gt;The first token is &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt;. It’s &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; is 0 and &lt;code class=&quot;highlighter-rouge&quot;&gt;end&lt;/code&gt; is 1 (based on &lt;code class=&quot;highlighter-rouge&quot;&gt;positionLength&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*JJ8BauM3gqfiE8Y1-eWTTg.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The second token is &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone6&lt;/code&gt;. Since its &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is 0, we do not move the &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; forward (it’ll still be 0). &lt;code class=&quot;highlighter-rouge&quot;&gt;end&lt;/code&gt; will be 3 (&lt;code class=&quot;highlighter-rouge&quot;&gt;start + positionLength&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*WC1ojA1eEm24muxfnR2VcQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The third token is &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone&lt;/code&gt;. &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; is still 0 as &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is 0. end is 4 (&lt;code class=&quot;highlighter-rouge&quot;&gt;start + positionLength&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*ezyY9S1rAlEcB2-rI9H-Eg.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Next token is &lt;code class=&quot;highlighter-rouge&quot;&gt;6&lt;/code&gt;. Since &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is 1, we move &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; by 1 so it becomes 1. &lt;code class=&quot;highlighter-rouge&quot;&gt;end&lt;/code&gt; will be 2 (&lt;code class=&quot;highlighter-rouge&quot;&gt;start + positionLength&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*Y4dzHVfhMBOLc2suX_MrTg.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The last token is &lt;code class=&quot;highlighter-rouge&quot;&gt;6s&lt;/code&gt;. This is where it gets tricky. The &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is 3. So we expect the &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; to move to 4 and create an edge from &lt;code class=&quot;highlighter-rouge&quot;&gt;4 -&amp;gt; 5&lt;/code&gt;, which will give us &lt;code class=&quot;highlighter-rouge&quot;&gt;iphone 6s (0 -&amp;gt; 4 -&amp;gt; 5&lt;/code&gt;).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*P6-XDXIvRF4Z1WXqwywyhQ.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;But as you might have guessed, this is not what happens. Instead &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; is incremented by only 1. It’s always incremented by 1 (&lt;code class=&quot;highlighter-rouge&quot;&gt;pos++&lt;/code&gt;) if &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement&lt;/code&gt; is greater than 0. So what we get is an edge from &lt;code class=&quot;highlighter-rouge&quot;&gt;start&lt;/code&gt; (which is now 2) to &lt;code class=&quot;highlighter-rouge&quot;&gt;end&lt;/code&gt; (which is 5: &lt;code class=&quot;highlighter-rouge&quot;&gt;start + positionLength + gap&lt;/code&gt;, where &lt;code class=&quot;highlighter-rouge&quot;&gt;gap&lt;/code&gt; is &lt;code class=&quot;highlighter-rouge&quot;&gt;positionIncrement -1&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*_rYGpdQY0kKDmGvIkGf-pA.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And there you have it. &lt;code class=&quot;highlighter-rouge&quot;&gt;0 -&amp;gt; 3 (iphone6)&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;0 -&amp;gt; 4 (iphone)&lt;/code&gt; are eliminated on account of being dead states and we are left with iphone 6 6s, which is what’s finally searched&lt;/p&gt;
+
+&lt;p&gt;I fixed this issue by adding the gap to pos before creating the edge.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://cdn-images-1.medium.com/max/1600/1*yPuUXvvMHY7QRjL4BEna9A.png&quot; alt=&quot;alt text&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;But I’m not sure that it’ll not break other cases (such as cases where stopwords appear in the middle e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;apple i phone&lt;/code&gt;).&lt;/p&gt;
+
+&lt;p&gt;I think properly handling the gap introduced by removing stopwords requires identifying synonym boundaries and attaching tokens to their synonyms (I don’t have the final solution yet, but I’m working on it :-))&lt;/p&gt;
+
+&lt;h2 id=&quot;what-did-wedo&quot;&gt;What Did We Do?&lt;/h2&gt;
+&lt;p&gt;First, we removed single character words from our stopwords list, since most of the problematic cases were because of those.&lt;/p&gt;
+
+&lt;p&gt;Secondly, for better precision, we wanted the synonyms to be searched as phrases. In the case of &lt;code class=&quot;highlighter-rouge&quot;&gt;i phone&lt;/code&gt;, instead of matching documents where &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;phone&lt;/code&gt; appear anywhere (which could very well be in separate contexts e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;I want to sell my Samsung phone&lt;/code&gt;), we wanted to match documents where &lt;code class=&quot;highlighter-rouge&quot;&gt;i&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;phone&lt;/code&gt; appear together. Solr provides a way to do that. We just need to add &lt;code class=&quot;highlighter-rouge&quot;&gt;autoGeneratePhraseQueries=&quot;true&quot;&lt;/code&gt;` in the field type. For example:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;lt;fieldType name=&quot;text_en&quot; class=&quot;solr.TextField&quot;autoGeneratePhraseQueries=&quot;true&quot; positionIncrementGap=&quot;100&quot; docValues=&quot;false&quot; multiValued=&quot;false&quot;&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Note that this can sacrifice some recall in favour of better precision.&lt;/p&gt;
+
+&lt;h2 id=&quot;closing-thoughts&quot;&gt;Closing Thoughts&lt;/h2&gt;
+&lt;p&gt;I had quite a fun time debugging this issue and getting to know the internals of Lucene better. I’ll try to raise an issue on Lucene github or Jira to get help from the experts. We can either get this behaviour documented somewhere or probably fix it in the code.&lt;/p&gt;
+
+&lt;p&gt;Also, I would recommend everyone working on search with Solr to setup live debugging environment on their local machines. Lucene and Solr are complex beasts with a lot of complex algorithms and it helps immensely if we can step through the code and see what’s happening exactly. Apart from this issue, it has also helped me debug/understand a number of other issues involving spellcheck, proximity boosting and geospatial search. I used the following to help me set up the environment-&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://cwiki.apache.org/confluence/display/LUCENE/HowtoConfigureIntelliJ&quot;&gt;https://cwiki.apache.org/confluence/display/LUCENE/HowtoConfigureIntelliJ&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://opensourceconnections.com/blog/2015/04/30/debugging-solr-5-in-intellij&quot;&gt;https://opensourceconnections.com/blog/2015/04/30/debugging-solr-5-in-intellij&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Thanks for reading through.&lt;/p&gt;</content><author><name>[&quot;Vikas Kumar&quot;]</name></author><summary type="html">Do you use Solr? Do you use stopwords &amp;amp; synonyms with Solr? Do your synonyms have stopwords in them? If yes, then this article is probably for you. If you are a Solr/Lucene nerd like me who loves to deep dive into the intricacies of internals &amp;amp; under-the-hood implementations, then this article is definitely for you :-).</summary></entry></feed>
