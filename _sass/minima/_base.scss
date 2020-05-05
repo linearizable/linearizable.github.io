@@ -32,6 +32,7 @@ body {
   min-height: 100vh;
   flex-direction: column;
   overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
 }
 
 
@@ -66,8 +67,11 @@ main {
 img {
   max-width: 100%;
   vertical-align: middle;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 40px;
+  margin-bottom: 40px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 
@@ -93,9 +97,11 @@ ul, ol {
 }
 
 li {
+  margin-bottom: 20px;
   > ul,
   > ol {
     margin-bottom: 0;
+    margin-top: 20px;
   }
 }
 
@@ -123,7 +129,7 @@ a {
 
   &:hover {
     color: $link-hover-color;
-    text-decoration: underline;
+    //text-decoration: underline;
   }
 
   .social-media-list &:hover {
@@ -145,12 +151,12 @@ blockquote {
   margin-bottom: 30px;
   padding-top: 20px;
   padding-bottom: 1px;
-  color: #666;
+  color: #3e5e6d;
   border-left: 4px solid #c2dfec;
   padding-left: $spacing-unit;
   padding-right: $spacing-unit;
   @include relative-font-size(1.125);
-  font-style: italic;
+  //font-style: italic;
 
   > :last-child {
     margin-bottom: 0;
@@ -158,6 +164,10 @@ blockquote {
 
   i, em {
     font-style: normal;
+  }
+
+  p {
+    margin-bottom: 20px !important;
   }
 }
 
@@ -173,7 +183,7 @@ code {
   border: 0px solid $border-color-01;
   border-radius: 3px;
   background-color: #f2f2f2;
-  color:#666;
+  color:#343f7d;
 }
 
 code {
@@ -281,6 +291,7 @@ table {
   }
   td {
     border: 1px solid $table-border-color;
+    font-size: 18px;
   }
 
   @include media-query($on-laptop) {

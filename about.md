@@ -3,16 +3,15 @@ layout: page
 title: About
 permalink: /about/
 ---
+<div style='float:l1eft;'>
+<img src='/assets/about.png' width='200' />
+</div>
+<div style='clear:both'></div>
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+<div style='font-family: Yantramanav; font-size:30px; color:#87a8ad; margin-bottom:10px;'>Vikas Kumar</div>
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+Technical Architect at [OLX Group](https://www.olxgroup.com/). I'm interested in distributed systems, databases and site reliability engineering.
 
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
-
-
-[jekyll-organization]: https://github.com/jekyll
+<div class="social-links">
+  {%- include social.html -%}
+</div>
