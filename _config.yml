@@ -2,8 +2,7 @@ title: Resilient Systems
 author:
   name: Vikas Kumar
   email: hershil@gmail.com
-description: > # this means to ignore newlines until "show_excerpts:"
-  My thoughts on databases and distributed systems
+title: Resilient Systems Blog  
 
 show_excerpts: false # set to true to show excerpts on the homepage
 
