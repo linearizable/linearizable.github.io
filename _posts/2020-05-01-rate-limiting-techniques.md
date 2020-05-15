@@ -5,6 +5,8 @@ author:
 - Vikas Kumar
 ---
 
+<img src='/assets/speedlimit2.jpg' width='940' />
+
 Rate limiting is one of the most discussed topics related to protecting your APIs and services from excessive use either from bad actors trying to deliberately abuse the service or buggy code. Several people and companies have shared various approaches of implementing rate limiting in applications and there are several products which provide out-of-the-box support for rate limiting.
 
 Rate limiting can either be global or on a per-client basis. The client here can refer to any user of a service. The client can be:
@@ -20,14 +22,14 @@ Broadly, rate limiting can be implemented using one of the two approaches:
 ### In-App
 The application code (usually a request filter for HTTP requests) keeps track of the usage for various clients, typically using an external database or cache, and applies the limits when usage exceeds the quota.  
 
-![alt text](https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/InAppRateLimiting.png)
+<div class='imgwrapper'><img src='https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/InAppRateLimiting.png' /></div>
 
 The external datastore is required because usually there are multiple instances of a service running and they need to share state to implement service-wide rate limiting. [Redis](https://redis.io/) is usually a good choice and is used widely for this use case.  
 
 ### Using a proxy
 Second approach is to use a reverse proxy in front of the service instances.
 
-![alt text](https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/ProxyRateLimiting.png)
+<div class='imgwrapper'><img src='https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/ProxyRateLimiting.png' /></div>
 
 Most popular proxies (Nginx, HAProxy, API Gateways, Envoy etc.) come with rate limiting functionality out of the box (However, it becomes tricky when there are multiple instances of proxy itself).
 
@@ -51,7 +53,7 @@ Suppose our rate limit is 3 requests/minute. When a request from a client (say w
 
 Let's see an example of fixed window counter.
 
-![alt text](https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/FixedWindowRateLimit.png)
+<div class='imgwrapper'><img src='https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/FixedWindowRateLimit.png' /></div>
 
 In this example, from top, requests 1-3 belong to window 1, hence tracked against the same key in Redis (e.g. `12345_21042020_10:00:00` or `12345_1587463200` using epoch). Since there are only 3 requests in this window, no request is blocked.  
 
@@ -71,7 +73,7 @@ Requests 4-8 belong to window 2 and will be tracked against the same key. After 
 
 To overcome the disadvantage of the fixed window approach, we can break the rate-limit window into smaller windows and track counters across those smaller windows. For example, in this case, instead of maintaining counters across a one minute window, we can use one second windows (so 60 sub-windows for a minute interval). To check whether to reject, we need to take a sum of counters of all previous 60 sub-windows from current time. This essentially becomes a rolling window mechanism.
 
-![alt text](https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/SlidingWindowCounter.png)
+<div class='imgwrapper'><img src='https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/SlidingWindowCounter.png' /></div>
 
 A new Redis key will be created for each 1 second sub-window, which will count all requests in that second. If a request arrives between `10:01:34` and `10:01:35`, we take the sum of value for keys `10:00:35`, `10:00:36`...upto `10:01:34`.
 
@@ -101,7 +103,7 @@ This uses more memory (compared to sliding window counter) as it stores all the 
 
 In this classic algorithm, each user receives a certain number of tokens which are periodically replenished (e.g. 100 tokens every minute) up to a certain maximum (say 500) to allow for bursts. When user makes a request, a token is deducted and request is allowed. If number of tokens fall to zero before the next replenishment cycle, request is rejected.
 
-![alt text](https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/TokenBucket.png)
+<div class='imgwrapper'><img src='https://raw.githubusercontent.com/linearizable/linearizable.github.io/master/TokenBucket.png' /></div>
 
 Token bucket can be implemented either by using a separate process to replenish the token or without one. Let's assume:
 
@@ -189,7 +191,7 @@ Let's say the next request arrives at `ARRIVAL2`. Retrieve `TAT` from Redis.
 * If `ARRIVAL2` < `TAT`, request arrives too soon. Reject.
 * If `ARRIVAL2` >= `TAT`, request arrives on or after the allowed time. Allow. Also update `TAT` as `Max(ARRIVAL1, TAT) + emission_internal`
 
-![alt text](/assets/GCRA3.png)
+<img src='/assets/GCRA3.png' />
 
 The intuition behind this is quite simple. Requests should be spaced in time as the rate limit parameters. In the example we considered (100 requests/second), spacing between requests must be at least 10 ms. If a request arrives within 10 ms of previous request, it is rejected.
 
@@ -217,7 +219,7 @@ Again, let's say the next request arrives at `ARRIVAL2`. Retrieve `TAT` from Red
 * If `ARRIVAL2` < `allowed_at`, request arrives too soon. Reject.
 * If `ARRIVAL2` >= `allowed_at`, Allow. Also update `TAT` as `Max(ARRIVAL1, TAT) + emission_internal`
 
-[ ![](/assets/GCRA4.png) ](/assets/GCRA4.png)
+<img src='/assets/GCRA4.png' />
 
 You can see burst (`burst` = 5) in action in above diagram. We have allowed 5 additional requests than usual 1 in the first window. After that, further requests in that window are rejected. Since the entire burst balance has been consumed, it falls back to 1 request per interval. If the client doesn't make any requests in future interval (as in `10:00:00.520` - `10:00:00.530` and `10:00:00.530` - `10:00:00.540`), it accumulates `burst` balance.
 
@@ -271,7 +273,7 @@ The technique employed for implementing rate limiting differs between these tech
 
 Similar to token bucket, leaky bucket also has a bucket with a finite capacity for each client. However, instead of tokens, it is filled with requests from that client. Requests are taken out of the bucket and processed at a constant rate. If the rate at which requests arrive is greater than the rate at which requests are processed, bucket will fill up and further requests will be dropped until there is space in the bucket.     
 
-<img src='/assets/LeakyBucket2.png' align='center' />
+<div class='imgwrapper'><img src='/assets/LeakyBucket2.png' align='center' /></div>
 
 The bucket can be implemented as a FIFO queue. Size of the queue is equal to the bucket capacity. New requests are added to the queue and a separate thread can deque requests at a constant rate and send for processing. If the queue is full, further requests are dropped until space becomes available.
 

@@ -5,21 +5,23 @@
   //border-bottom: 1px solid $border-color-01;
   min-height: $spacing-unit * 1.865;
   line-height: $base-line-height * $base-font-size * 2.25;
-  box-shadow: 3px 1px 5px 2px #eee;
 
   // Positioning context for the mobile navigation icon
   position: relative;
 }
 
 .site-title {
-  @include relative-font-size(2.0);
-  color:#636363;
-  font-weight: 300;
-  letter-spacing: -1px;
+  @include relative-font-size(1.4);
+  color:#4a4a4a;
+  font-weight: 400;
+  letter-spacing: 4px;
   margin-bottom: 0;
-  float: left;
-  font-family: Yantramanav;
+  display: block;
+  border-bottom: 2px solid #636363;
+  margin-bottom: 2px;
+  font-family: "Tauri";
   margin-top:5px;
+  text-transform: uppercase;
 
   @include media-query($on-palm) {
     padding-right: 45px;
@@ -27,9 +29,22 @@
 
   &,
   &:visited {
-    color:#636363;
+    color:#4a4a4a;
   }
 }
+
+.excerpt {
+
+}
+
+.aside {
+  background:#f9f9f9;padding: 20px;border: 1px solid #e6e6e6;padding-top: 0; padding-bottom:0; font-size:18px;
+}
+.aside h2 {
+  font-size:1.5rem !important;
+  margin-top:20px !important;
+}
+
 
 .site-nav {
   position: absolute;
@@ -205,7 +220,9 @@
  */
 .page-content {
   padding: $spacing-unit 0;
+  padding-top:20px;
   flex: 1 0 auto;
+  background:#fff;
 }
 
 .page-heading {
@@ -219,6 +236,7 @@
 .post-list {
   margin-left: 0;
   list-style: none;
+  padding:0 100px;
 
   > li {
     margin-bottom: $spacing-unit;
@@ -232,31 +250,63 @@
 
 .post-link {
   display: block;
-  @include relative-font-size(1.5);
+  @include relative-font-size(1.6);
 }
 
-
-
+.imgwrapper {
+  box-shadow:0px 0px 10px #eee; padding:1px; margin-bottom:40px; margin-top:40px;
+  background: #fff;
+}
+.imgwrapper2 {
+  box-shadow:0px 0px 15px #f6f6f6; padding:1px; margin:40px 40px 30px 40px;
+  background: #fff;
+}
 /**
  * Posts
  */
 .post-header {
   margin-bottom: $spacing-unit;
+  margin-top: $spacing-unit;
 }
 
 .post-title {
   //@include relative-font-size(2.625);
-  font-size: 40px;
-  font-weight: 400;
-  letter-spacing: .008em;
-  line-height: 1.15;
+  font-size: 60px;
+  font-weight: 500;
+  letter-spacing: .001em;
+  line-height: 1.2;
   color:#444;
   margin-top:20px;
+  font-family: Roboto;
 
   @media screen and (min-width: $on-large) {
     //@include relative-font-size(2.625);
-    font-size: 52px;
+    font-size: 54px;
   }
+}
+
+.highlighter {
+  background:#f4f5ed; margin-bottom:30px; padding:20px; font-style:italic; border-left:5px solid #d2d4c9;
+}
+
+.highlighter-gray {
+  background:#f7f7f7; margin-bottom:30px; padding:1px 20px; border-left:5px solid #e6e6e6;
+}
+
+.bannercontainer {
+  box-shadow:0 0 25px #eee; padding:1px; margin-bottom:40px;
+}
+
+.bannercontainer img {
+  margin-top:20px; margin-bottom:20px;
+}
+
+.iframecontainer {
+  box-shadow:0 0 25px #eee; padding:20px;
+}
+
+.nextlink {
+  background:#ecf7fd; padding:20px 30px; display:block; font-size:18px;
 }
 
 .post-content h1 {
@@ -274,7 +324,7 @@
 }
 
 .post-content {
-  margin-bottom: $spacing-unit;
+  margin-bottom: $spacing-unit*3;
   letter-spacing: -0.011em;
   color: #444;
   line-height: 1.5;
@@ -282,9 +332,9 @@
 
 
 
-  h1, h2, h3 { margin-top: $spacing-unit; font-weight: 800; color:#555;}
-  h4 { margin-top: $spacing-unit; font-weight: 800; color:#555;}
-  h5, h6 { margin-top: 0; font-weight: 800; color:#555;}
+  h1, h2, h3 { margin-top: $spacing-unit; font-weight: 800; color:#555; font-family: Roboto;}
+  h4 { margin-top: $spacing-unit; font-weight: 800; color:#555; font-family: Roboto;}
+  h5, h6 { margin-top: 0; font-weight: 800; color:#555; font-family: Roboto;}
 
   h2 { border-bottom:1px dashed #ccc; padding-bottom:10px; margin-bottom: 30px; margin-top: $spacing-unit*2;}
   h1 { border-bottom:1px dashed #ccc; padding-bottom:18px; margin-bottom: 30px; margin-top: $spacing-unit*2;}
@@ -313,7 +363,7 @@
     @include relative-font-size(1.5);
   }
   h6 {
-    @include relative-font-size(1.0625);
+    @include relative-font-size(1.2);
   }
 
   p {
@@ -338,6 +388,11 @@
   }
 }
 
+.qtitle {
+  margin-bottom:10px;
+  font-size:18px;
+  font-weight: 800;
+}
 
 
 /**
@@ -374,4 +429,14 @@
   .one-half {
     width: calc(50% - (#{$spacing-unit} / 2));
   }
+}
+
+.mildh2 {
+  border-bottom:none !important; margin-top:40px !important; margin-bottom:20px !important; font-size:1.9rem !important;
+}
+.symbol {
+  font-size:30px; font-weight:400;
+}
+.symbol2 {
+  font-size:24px; font-weight:400;
 }

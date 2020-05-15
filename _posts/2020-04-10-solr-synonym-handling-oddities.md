@@ -5,13 +5,9 @@ author:
 - Vikas Kumar
 ---
 
->Do you use Solr?
->
->Do you use stopwords & synonyms with Solr?
->
->Do your synonyms have stopwords in them?
->
->If yes, then this article is probably for you. If you are a Solr/Lucene nerd like me who loves to deep dive into the intricacies of internals & under-the-hood implementations, then this article is definitely for you :-).
+<div style='box-shadow:0 0 25px #eee; padding:0px;'>
+<img src='/assets/apples4.jpg' style='opacity:0.8' />
+</div>
 
 Solr has a long and turbulent history with multi-word synonyms (Just search `solr multi word synonyms` in Google or read [here](https://opensourceconnections.com/blog/2013/10/27/why-is-multi-term-synonyms-so-hard-in-solr/) & [here](https://lucidworks.com/post/multi-word-synonyms-solr-adds-query-time-support/)). `SynonymGraphFilter` finally solved most of these issues. But recently we (Search team at OLX Autos India) discovered a strange issue when dealing with synonyms which contain stop words, specifically if stop words appear at the beginning or end.
 
@@ -71,7 +67,7 @@ This [article](http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-a
 
 Let's take the first example (`iphone` and `i phone`). If we analyse `i phone` using the analysis tool provided by Solr admin panel, we get the following analysis:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*DXIrh0p-lAoroTLRQpTWsQ.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*DXIrh0p-lAoroTLRQpTWsQ.png'></div>
 
 
 We can think of each token as a node in the graph. To see how the graph is generated from this analysis, we need to consider the following:
@@ -81,14 +77,13 @@ We can think of each token as a node in the graph. To see how the graph is gener
 
 ‌The above analysis generates the following graph:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*OxFeocbynHaLQoh00AtO9g.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*OxFeocbynHaLQoh00AtO9g.png'></div>
 
 Internally Lucene uses an attribute called `positionIncrement` to determine positions. `positionIncrement` for a node is defined as the gap (in terms of the number of nodes or positions) between start positions of this node and the previous node. `positionIncrement` always starts with the value of 1.
 
 Let's see how this graph is represented by Lucene's internal data structure:
 
-![alt text](https://cdn-images-1.medium.com/max/2400/1*kbza43Lyt6y5bK3lw0ZOEA.png)
-
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/2400/1*kbza43Lyt6y5bK3lw0ZOEA.png' width='900'></div>
 
 ‌In this case, the first token is `iphone` (`iphon` here because of stemming, but you can ignore that) so its `positionIncrement` is 1. Next token, `i`, starts at the same position as the previous token (iphone), so its increment will be 0. Next token, `phone`, starts at the next position, so its increment is 1.
 
@@ -103,11 +98,11 @@ Let's see how this graph is represented by Lucene's internal data structure:
 
 Similarly, let's take a look at the analysis for the second example (`iphone 6s`), again without considering stopwords:
 
-![alt text](https://cdn-images-1.medium.com/max/2400/1*0xknN3YhTSXjrGaQkDSvUQ.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/2400/1*0xknN3YhTSXjrGaQkDSvUQ.png' width='860'></div>
 
 And the corresponding graph:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*_TvxgJQwYMVXetTlEow5PQ.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*_TvxgJQwYMVXetTlEow5PQ.png' width='860'></div>
 
 Here's the internal representation (with a readable tabular format):
 
@@ -126,11 +121,11 @@ Now that we have seen how SynonymGraphFilter works, let's add the stopwords back
 
 First, let's examine case #1 (`iphone` and `i phone`), where entire synonym is dropped if a stopword appears at the beginning or end. We add `i` as a stopword and analyse again. Here's the analysis:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*6O4YLPKitHalmffKMwkKQw.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*6O4YLPKitHalmffKMwkKQw.png'></div>
 
 As you can see, `i` is dropped. Rest everything remains the same. We can now visualize this as the following graph:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*tUcSakuzoTemeiSsdxZMxw.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*tUcSakuzoTemeiSsdxZMxw.png'></div>
 
 The corresponding internal representation is:
 
@@ -154,19 +149,18 @@ Now let's examine the other case where searching for `iphone 6s` results in a we
 
 If we analyse `iphone 6s` again with `s` added to stopword list, we can see the following analysis:
 
-![alt text](https://cdn-images-1.medium.com/max/2400/1*upx5E23_8QG3cyNNm6ZYUQ.png)
-
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/2400/1*upx5E23_8QG3cyNNm6ZYUQ.png' width='860'></div>
 
 It is equivalent to the following graph:
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*_elE61LbtrnKJN1gSYiKnw.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*_elE61LbtrnKJN1gSYiKnw.png' width='860'></div>
+
 
 If we go by the intuition gained from debugging case #1, we can say that this will ignore the lower two branches as they can not reach the end state and will only search `iphone 6s`, but that doesn't happen. Instead, Solr ends up searching for `iphone 6 6s`. How does that happen?
 
 ‌Let's look at the internal data structure:
 
-![alt text](https://cdn-images-1.medium.com/max/2400/1*ONJa5AMdTO0c6kYtm6bMiw.png)
-
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/2400/1*ONJa5AMdTO0c6kYtm6bMiw.png' width='900'></div>
 
 In tabular format, this translates to:
 
@@ -186,27 +180,27 @@ The code is a bit involved but pretty straightforward if we step through it usin
 
 The first token is `iphone`. It's `start` is 0 and `end` is 1 (based on `positionLength`)
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*JJ8BauM3gqfiE8Y1-eWTTg.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*JJ8BauM3gqfiE8Y1-eWTTg.png' /></div>
 
 The second token is `iphone6`. Since its `positionIncrement` is 0, we do not move the `start` forward (it'll still be 0). `end` will be 3 (`start + positionLength`)
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*WC1ojA1eEm24muxfnR2VcQ.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*WC1ojA1eEm24muxfnR2VcQ.png' /></div>
 
 The third token is `iphone`. `start` is still 0 as `positionIncrement` is 0. end is 4 (`start + positionLength`)
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*ezyY9S1rAlEcB2-rI9H-Eg.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*ezyY9S1rAlEcB2-rI9H-Eg.png' /></div>
 
 Next token is `6`. Since `positionIncrement` is 1, we move `start` by 1 so it becomes 1. `end` will be 2 (`start + positionLength`)
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*Y4dzHVfhMBOLc2suX_MrTg.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*Y4dzHVfhMBOLc2suX_MrTg.png' /></div>
 
 The last token is `6s`. This is where it gets tricky. The `positionIncrement` is 3. So we expect the `start` to move to 4 and create an edge from `4 -> 5`, which will give us `iphone 6s (0 -> 4 -> 5`).
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*P6-XDXIvRF4Z1WXqwywyhQ.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*P6-XDXIvRF4Z1WXqwywyhQ.png' /></div>
 
 But as you might have guessed, this is not what happens. Instead `start` is incremented by only 1. It's always incremented by 1 (`pos++`) if `positionIncrement` is greater than 0. So what we get is an edge from `start` (which is now 2) to `end` (which is 5: `start + positionLength + gap`, where `gap` is `positionIncrement -1`)
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*_rYGpdQY0kKDmGvIkGf-pA.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*_rYGpdQY0kKDmGvIkGf-pA.png' /></div>
 
 And there you have it. `0 -> 3 (iphone6)` and `0 -> 4 (iphone)` are eliminated on account of being dead states and we are left with iphone 6 6s, which is what's finally searched
 
@@ -214,7 +208,7 @@ I fixed this issue by adding the gap to pos before creating the edge.
 
 
 
-![alt text](https://cdn-images-1.medium.com/max/1600/1*yPuUXvvMHY7QRjL4BEna9A.png)
+<div class='imgwrapper'><img src='https://cdn-images-1.medium.com/max/1600/1*yPuUXvvMHY7QRjL4BEna9A.png' /></div>
 
 But I'm not sure that it'll not break other cases (such as cases where stopwords appear in the middle e.g. `apple i phone`).
 

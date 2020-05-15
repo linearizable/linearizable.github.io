@@ -3,8 +3,11 @@ layout: post
 title: "Solr SpellCheck Result Ordering Caveat"
 author:
 - Vikas Kumar
+excerpt: Do you know how the spellcheck results are ordered in Solr? In this post, I explore some caveats in the ordering of spellcheck results that can stump new users (and probably some experts too).
 comments: true
 ---
+
+<img src='/assets/spelling2.gif' width='940' />
 
 Solr spellcheck component finds terms similar to a given query from the index within a configured edit distance. The spellcheck results are sorted first by edit distance (lower the better) and within the same edit distance, by frequency.
 

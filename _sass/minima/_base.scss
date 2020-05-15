@@ -21,7 +21,7 @@ dl, dd, ol, ul, figure {
 body {
   font: $base-font-weight #{$base-font-size}/#{$base-line-height} $base-font-family;
   color: $text-color;
-  background-color: $background-color;
+  background-color: #f7f8f9;
   -webkit-text-size-adjust: 100%;
   -webkit-font-feature-settings: "kern" 1;
      -moz-font-feature-settings: "kern" 1;
@@ -123,9 +123,7 @@ a {
   color: $link-base-color;
   text-decoration: none;
 
-  &:visited {
-    color: $link-visited-color;
-  }
+
 
   &:hover {
     color: $link-hover-color;
@@ -277,6 +275,7 @@ table {
   color: $table-text-color;
   border-collapse: collapse;
   border: 1px solid $table-border-color;
+  font-size:16px;
   tr {
     &:nth-child(even) {
       background-color: $table-zebra-color;
@@ -291,7 +290,6 @@ table {
   }
   td {
     border: 1px solid $table-border-color;
-    font-size: 18px;
   }
 
   @include media-query($on-laptop) {

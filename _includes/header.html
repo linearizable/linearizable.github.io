@@ -1,12 +1,13 @@
 <header class="site-header">
 
   <div class="wrapper">
+    <div style='width:275px; margin:auto; margin-top:30px; margin-bottom: 50px; border-bottom:2px solid #636363;  text-align:center;'>
     {%- assign default_paths = site.pages | map: "path" -%}
     {%- assign page_paths = site.header_pages | default: default_paths -%}
     {%- assign titles_size = site.pages | map: 'title' | join: '' | size -%}
     <a class="site-title" rel="author" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    </div>
 
-<!--    {%- if titles_size > 0 -%} -->
       <nav class="site-nav">
         <input type="checkbox" id="nav-trigger" class="nav-trigger" />
         <label for="nav-trigger">
@@ -17,10 +18,9 @@
           </span>
         </label>
 
-        <div class="trigger">
-            <a class="page-link" href="/about">About</a>
+        <div class="trigger" style='position:absolute; top:40px; right:20px;'>
+            <a class="page-link" href="/about"><img src='/assets/burger.png' width='32' style='margin-top:0; opacity:0.4' /></a>
         </div>
       </nav>
-<!--    {%- endif -%} -->
   </div>
 </header>
