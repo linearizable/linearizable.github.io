@@ -24,6 +24,8 @@
   text-transform: uppercase;
 
   @include media-query($on-palm) {
+    @include relative-font-size(1.1);
+    border-bottom: none;
     padding-right: 45px;
   }
 
@@ -33,16 +35,79 @@
   }
 }
 
+.site-title-post {
+  @include relative-font-size(0.93);
+  color:#4a4a4a;
+  font-weight: 400;
+  letter-spacing: 4px;
+  margin-bottom: 0;
+  display: block;
+  border-bottom: 1px solid #636363;
+  margin-bottom: 2px;
+  font-family: "Tauri";
+  margin-top:5px;
+  text-transform: uppercase;
+
+  @include media-query($on-palm) {
+    @include relative-font-size(1.1);
+    border-bottom: none;
+    padding-right: 45px;
+  }
+
+  &,
+  &:visited {
+    color:#4a4a4a;
+  }
+}
+
+.titlewrapper {
+  width:275px;
+  margin:auto;
+  margin-top:30px;
+  margin-bottom: 50px;
+  border-bottom:2px solid #636363;
+  text-align:center;
+
+  @include media-query($on-palm) {
+    border-bottom: none;
+    margin-left: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+}
+
+.titlewrapperpost {
+  width:205px;
+  margin: 10px 0 10px 20px;
+  border-bottom:1px solid #636363;
+
+  @include media-query($on-palm) {
+    width:275px;
+    border-bottom: none;
+    margin-left: 26px;
+    margin-top: 22px;
+    margin-bottom: 20px;
+  }
+}
+
+
 .excerpt {
 
 }
 
 .aside {
   background:#f9f9f9;padding: 20px;border: 1px solid #e6e6e6;padding-top: 0; padding-bottom:0; font-size:18px;
+  @include media-query($on-palm) {
+    margin-bottom:30px;
+  }
 }
 .aside h2 {
   font-size:1.5rem !important;
   margin-top:20px !important;
+  @include media-query($on-palm) {
+    font-size:22px !important;
+    margin-bottom:20px;
+  }
 }
 
 
@@ -134,7 +199,14 @@
   }
 }
 
-
+.trigger {
+  position:absolute;
+  top:40px;
+  right:20px;
+  @include media-query($on-palm) {
+    top:20px;
+  }
+}
 
 /**
  * Site footer
@@ -213,7 +285,11 @@
   }
 }
 
-
+.home {
+  @include media-query($on-palm) {
+    margin-top:20px;
+  }
+}
 
 /**
  * Page content
@@ -223,6 +299,10 @@
   padding-top:20px;
   flex: 1 0 auto;
   background:#fff;
+
+  @include media-query($on-palm) {
+    padding: 10px 10px;
+  }
 }
 
 .page-heading {
@@ -238,6 +318,10 @@
   list-style: none;
   padding:0 100px;
 
+  @include media-query($on-palm) {
+    padding:0 10px;
+  }
+
   > li {
     margin-bottom: $spacing-unit;
   }
@@ -251,6 +335,10 @@
 .post-link {
   display: block;
   @include relative-font-size(1.6);
+
+  @include media-query($on-palm) {
+    @include relative-font-size(1.2);
+  }
 }
 
 .imgwrapper {
@@ -267,6 +355,10 @@
 .post-header {
   margin-bottom: $spacing-unit;
   margin-top: $spacing-unit;
+
+  @include media-query($on-palm) {
+    margin-top:0;
+  }
 }
 
 .post-title {
@@ -282,6 +374,10 @@
   @media screen and (min-width: $on-large) {
     //@include relative-font-size(2.625);
     font-size: 54px;
+  }
+
+  @include media-query($on-palm) {
+    font-size:30px;
   }
 }
 
@@ -321,6 +417,12 @@
     //@include relative-font-size(2.625);
     font-size: 38px;
   }
+
+  @include media-query($on-palm) {
+    font-size:28px;
+    line-height: 1.3;
+  }
+
 }
 
 .post-content {
@@ -339,11 +441,22 @@
   h2 { border-bottom:1px dashed #ccc; padding-bottom:10px; margin-bottom: 30px; margin-top: $spacing-unit*2;}
   h1 { border-bottom:1px dashed #ccc; padding-bottom:18px; margin-bottom: 30px; margin-top: $spacing-unit*2;}
 
+  h1 {
+    @include media-query($on-palm) {
+      margin-top:20px;
+    }
+  }
+
   h2 {
     @include relative-font-size(1.75);
 
     @media screen and (min-width: $on-large) {
       @include relative-font-size(2.1);
+    }
+
+    @include media-query($on-palm) {
+      font-size:26px;
+      margin-top:30px;
     }
   }
 
@@ -353,14 +466,25 @@
     @media screen and (min-width: $on-large) {
       @include relative-font-size(1.7);
     }
+
+    @include media-query($on-palm) {
+      font-size:22px;
+    }
   }
 
   h4 {
     @include relative-font-size(1.4);
+    @include media-query($on-palm) {
+      font-size:22px;
+      margin-top:30px;
+    }
   }
 
   h5 {
     @include relative-font-size(1.5);
+    @include media-query($on-palm) {
+      font-size:20px;
+    }
   }
   h6 {
     @include relative-font-size(1.2);
@@ -433,6 +557,9 @@
 
 .mildh2 {
   border-bottom:none !important; margin-top:40px !important; margin-bottom:20px !important; font-size:1.9rem !important;
+  @include media-query($on-palm) {
+    margin-top:20px !important; margin-bottom:10px !important; font-size:24px !important;
+  }
 }
 .symbol {
   font-size:30px; font-weight:400;
