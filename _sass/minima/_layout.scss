@@ -208,6 +208,15 @@
   }
 }
 
+.trigger-post {
+  position:absolute;
+  top:12px;
+  right:20px;
+  @include media-query($on-palm) {
+    top:20px;
+  }
+}
+
 /**
  * Site footer
  */
