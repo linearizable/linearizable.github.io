@@ -286,6 +286,7 @@
 }
 
 .home {
+  margin-top:20px;
   @include media-query($on-palm) {
     margin-top:20px;
   }
