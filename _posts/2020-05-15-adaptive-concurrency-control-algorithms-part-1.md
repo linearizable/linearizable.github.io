@@ -11,7 +11,7 @@ As the [Google SRE Workbook](https://landing.google.com/sre/workbook/chapters/ma
 
 <div class='highlighter'>No service is 100% available 100% of the time.</div>
 
-There is a multitude of factors that can cause a service being unavailable or very slow ([Slowdown in the new outage](https://www.youtube.com/watch?v=-q0sd-5b40U)). One of the major factors is overload. Overload occurs when a service is unable to keep up with the amount of work it is given. Again, there can be numerous factors which can cause a service to become overloaded such as:
+There is a multitude of factors that can cause a service being unavailable or very slow ([Slowdown is the new outage](https://www.youtube.com/watch?v=-q0sd-5b40U)). One of the major factors is overload. Overload occurs when a service is unable to keep up with the amount of work it is given. Again, there can be numerous factors which can cause a service to become overloaded such as:
 
 ##### Increase in Traffic
 
