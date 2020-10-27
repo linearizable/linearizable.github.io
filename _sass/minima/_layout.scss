@@ -345,6 +345,7 @@
 .post-link {
   display: block;
   @include relative-font-size(1.6);
+  font-family:Muli;
 
   @include media-query($on-palm) {
     @include relative-font-size(1.2);
