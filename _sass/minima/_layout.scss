@@ -340,13 +340,13 @@
 .post-meta {
   font-size: $small-font-size;
   color: $brand-color;
-  font-family:Muli;
+  #font-family:Muli;
 }
 
 .post-link {
   display: block;
   @include relative-font-size(1.5);
-  font-family:Muli;
+  #font-family:Muli;
 
   @include media-query($on-palm) {
     @include relative-font-size(1.2);
